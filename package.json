@@ -1,6 +1,6 @@
 {
   "name": "prototype-annotator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "In-browser annotation capabilities with SQLite persistence and template-based prompt generation",
   "author": "Newman Justice",
   "repository": {
