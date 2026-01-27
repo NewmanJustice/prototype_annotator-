@@ -1,1 +1,191 @@
-# prototype_annotator-
+# Prototype Annotator
+
+An Express middleware that enables in-browser annotation capabilities for collecting feedback on prototypes and designs. Features SQLite persistence, a Preact-based overlay UI, a management dashboard, and AI-powered prompt generation via Ollama.
+
+## Features
+
+- **In-Browser Annotations**: Add annotations directly on any page with element or rectangle selection
+- **Shadow DOM Isolation**: Overlay UI is completely isolated from your app's styles
+- **Persistent Storage**: All annotations stored in SQLite with full event history
+- **Management Dashboard**: Browse, filter, and manage annotations across all pages
+- **AI-Powered Prompts**: Generate structured prompts from annotations, optionally enhanced with Ollama
+- **Audit Trail**: Complete event history for all annotation changes
+
+## Installation
+
+```bash
+npm install prototype-annotator
+```
+
+### Requirements
+
+- Node.js >= 18.0.0
+- Express >= 4.18.0
+
+## Quick Start
+
+```javascript
+import express from 'express';
+import { createPrototypeAnnotator } from 'prototype-annotator';
+
+const app = express();
+
+// Initialize the annotator
+const annotator = createPrototypeAnnotator({
+  basePath: '/__prototype-annotator',
+  dbPath: './data/annotations.sqlite',
+  exportDir: './exports',
+});
+
+// Add the middleware
+app.use(annotator.middleware());
+
+// Your routes...
+app.get('/', (req, res) => {
+  res.send('<html><body><h1>Hello World</h1></body></html>');
+});
+
+app.listen(3000, () => {
+  console.log('Server running at http://localhost:3000');
+});
+```
+
+## Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `basePath` | string | `'/__prototype-annotator'` | Base path for API and dashboard routes |
+| `dbPath` | string | `'./prototype-annotator/annotator.sqlite'` | Path to SQLite database file |
+| `exportDir` | string | `'./prototype_annotator_exports'` | Directory for exported prompts |
+| `urlMode` | `'full'` \| `'pathname'` | `'full'` | How URLs are stored (full URL or pathname only) |
+| `actorMode` | `'prompt'` \| `'fixed'` | `'prompt'` | Actor identification mode |
+| `defaultActor` | string | `'anonymous'` | Default actor name |
+| `enableOverlay` | boolean | `true` | Enable the annotation overlay on pages |
+| `enableDashboard` | boolean | `true` | Enable the management dashboard |
+| `ollamaUrl` | string | `'http://localhost:11434'` | Ollama API URL |
+| `ollamaModel` | string | `'tinyllama'` | Ollama model for AI enhancement |
+
+## Using the Overlay
+
+When `enableOverlay` is true, an annotation toolbar appears on all HTML pages served by your Express app.
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `E` | Toggle element selection mode |
+| `R` | Toggle rectangle selection mode |
+| `S` | Toggle sidebar |
+| `Escape` | Cancel current selection |
+
+### Selection Modes
+
+- **Element Selection**: Click on any DOM element to annotate it. The CSS selector is automatically captured.
+- **Rectangle Selection**: Click and drag to draw a rectangle anywhere on the page.
+
+## Dashboard
+
+Access the dashboard at `{basePath}/dashboard` (e.g., `http://localhost:3000/__prototype-annotator/dashboard`).
+
+The dashboard provides:
+
+- **Pages**: View all pages with annotations
+- **Annotations**: Browse, filter, and manage all annotations
+- **Events**: Audit log of all annotation changes
+- **Prompts**: Generate and export AI-enhanced prompts
+
+## AI-Powered Prompt Generation
+
+Prototype Annotator can generate structured prompts from your annotations, optionally enhanced with Ollama.
+
+### Setting Up Ollama (Optional)
+
+For AI-enhanced prompts, install Ollama:
+
+```bash
+# macOS
+brew install ollama
+
+# Linux
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Windows
+# Download from https://ollama.com/download
+```
+
+Then start the service:
+
+```bash
+ollama serve
+```
+
+The `tinyllama` model will be automatically downloaded on first use.
+
+### Interactive Setup
+
+Run the setup script for guided Ollama installation:
+
+```bash
+npx prototype-annotator-setup
+```
+
+### Without Ollama
+
+If Ollama is not available, prompts are generated using templates only. The dashboard will show the Ollama status and provide setup instructions.
+
+## API Endpoints
+
+All endpoints are prefixed with `{basePath}/api`.
+
+### Annotations
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/annotations` | List annotations (supports `?url=` filter) |
+| GET | `/annotations/:id` | Get single annotation |
+| POST | `/annotations` | Create annotation |
+| PUT | `/annotations/:id` | Update annotation |
+| DELETE | `/annotations/:id` | Soft-delete annotation |
+| POST | `/annotations/:id/restore` | Restore deleted annotation |
+
+### Pages & Events
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/pages` | List all annotated pages |
+| GET | `/events` | List all events (supports filters) |
+
+### Prompts
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/prompts/exports` | List exported prompts |
+| POST | `/prompts/generate` | Generate prompt preview |
+| POST | `/prompts/confirm` | Export prompt to files |
+
+### Ollama Status
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/ollama/status` | Check Ollama service status |
+| GET | `/ollama/setup` | Get setup instructions |
+
+## Example
+
+Run the included example:
+
+```bash
+git clone <repo>
+cd prototype-annotator
+npm install
+npm run build
+npm run example
+```
+
+Then visit:
+- http://localhost:3000 - Example app with overlay
+- http://localhost:3000/__prototype-annotator/dashboard - Management dashboard
+
+## License
+
+MIT

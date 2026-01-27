@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+client/dist/
+
+# Database files
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Default data directories (created at runtime)
+prototype-annotator/
+example-data/
+
+# Exports (both naming conventions)
+prototype-annotator-exports/
+prototype_annotator_exports/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Init scripts with credentials
+claudeinit.sh
+.devcontainer/claudeinit.sh
+**/claudeinit.sh
