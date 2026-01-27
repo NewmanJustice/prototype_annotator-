@@ -43,11 +43,12 @@ export const Overlay: FunctionComponent<OverlayProps> = ({ config }) => {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if typing in an input
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
+      // Ignore if typing in an input (use composedPath for Shadow DOM)
+      const path = e.composedPath();
+      const isTypingInInput = path.some(
+        (el) => el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement
+      );
+      if (isTypingInInput) {
         return;
       }
 
