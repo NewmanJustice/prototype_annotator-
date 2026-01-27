@@ -34,7 +34,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [preact()],
     root: resolve(__dirname, 'client/dashboard'),
-    base: '/__prototype-annotator/dashboard/',
+    base: './',  // Use relative paths so basePath config is respected
     build: {
       outDir: resolve(__dirname, 'client/dist/dashboard'),
       emptyOutDir: true,

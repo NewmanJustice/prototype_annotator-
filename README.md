@@ -61,7 +61,7 @@ main();
 | `basePath` | string | `'/__prototype-annotator'` | Base path for API and dashboard routes |
 | `dbPath` | string | `'./prototype-annotator/annotator.sqlite'` | Path to SQLite database file |
 | `exportDir` | string | `'./prototype_annotator_exports'` | Directory for exported prompts |
-| `urlMode` | `'full'` \| `'pathname'` | `'full'` | How URLs are stored (full URL or pathname only) |
+| `urlMode` | `'full'` \| `'canonical'` | `'full'` | How URLs are stored (full URL or canonical without query/hash) |
 | `actorMode` | `'prompt'` \| `'fixed'` | `'prompt'` | Actor identification mode |
 | `defaultActor` | string | `'anonymous'` | Default actor name |
 | `enableOverlay` | boolean | `true` | Enable the annotation overlay on pages |

@@ -141,6 +141,8 @@ export interface ClientConfig {
 export interface PrototypeAnnotatorMiddleware {
   middleware: () => Router;
   router: Router;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  injector: (req: any, res: any, next: () => void) => void;
   config: ResolvedConfig;
 }
 

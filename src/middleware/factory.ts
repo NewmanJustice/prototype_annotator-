@@ -1,4 +1,4 @@
-import { Router, json, static as expressStatic } from 'express';
+import { Router, json, static as expressStatic, Request, Response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { initDatabaseAsync } from '../db/index.js';
@@ -11,6 +11,25 @@ import type { PrototypeAnnotatorConfig, PrototypeAnnotatorMiddleware } from '../
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Resolve client dist path - works both in development and when installed as dependency
+function getClientDistPath(): string {
+  // In the built package, __dirname is dist/, so client/dist is at ../client/dist
+  // But we need to handle both:
+  // 1. Development: src/middleware/factory.ts -> ../../client/dist
+  // 2. Installed: node_modules/prototype-annotator/dist/index.js -> ../client/dist
+
+  // Try the installed package path first (dist/ -> client/dist)
+  const installedPath = path.resolve(__dirname, '../client/dist');
+  const devPath = path.resolve(__dirname, '../../client/dist');
+
+  // Check if we're in a bundled dist folder
+  if (__dirname.endsWith('dist') || __dirname.includes('dist/')) {
+    return installedPath;
+  }
+
+  return devPath;
+}
+
 export async function createPrototypeAnnotator(
   userConfig?: PrototypeAnnotatorConfig
 ): Promise<PrototypeAnnotatorMiddleware> {
@@ -20,7 +39,7 @@ export async function createPrototypeAnnotator(
   // Initialize database (async for sql.js)
   await initDatabaseAsync(config.dbPath);
 
-  // Create main router
+  // Create main router for API and static files
   const router = Router();
 
   // JSON body parser for API routes
@@ -33,20 +52,28 @@ export async function createPrototypeAnnotator(
   router.use(`${config.basePath}/api`, createApiRouter(config));
 
   // Serve static files for overlay and dashboard
-  const clientDistPath = path.resolve(__dirname, '../../client/dist');
+  const clientDistPath = getClientDistPath();
 
-  // Serve overlay.js
-  router.use(`${config.basePath}/overlay.js`, expressStatic(path.join(clientDistPath, 'overlay.js')));
+  // Serve overlay.js using sendFile (not express.static which expects a directory)
+  router.get(`${config.basePath}/overlay.js`, (_req: Request, res: Response) => {
+    res.sendFile(path.join(clientDistPath, 'overlay.js'));
+  });
+
+  // Serve overlay.js.map for debugging
+  router.get(`${config.basePath}/overlay.js.map`, (_req: Request, res: Response) => {
+    res.sendFile(path.join(clientDistPath, 'overlay.js.map'));
+  });
 
   // Serve dashboard if enabled
   if (config.enableDashboard) {
+    // Serve dashboard static assets
     router.use(
       `${config.basePath}/dashboard`,
       expressStatic(path.join(clientDistPath, 'dashboard'))
     );
 
     // SPA fallback for dashboard routes
-    router.get(`${config.basePath}/dashboard/*`, (_req, res) => {
+    router.get(`${config.basePath}/dashboard/*`, (_req: Request, res: Response) => {
       res.sendFile(path.join(clientDistPath, 'dashboard', 'index.html'));
     });
   }
@@ -56,12 +83,11 @@ export async function createPrototypeAnnotator(
   router.use(`${config.basePath}/api`, errorHandler);
 
   // Create injector middleware for HTML responses (if overlay enabled)
-  let injector: ReturnType<typeof createInjector> | null = null;
-  if (config.enableOverlay) {
-    injector = createInjector(config.basePath, clientConfig);
-  }
+  const injector = config.enableOverlay
+    ? createInjector(config.basePath, clientConfig)
+    : null;
 
-  // Create combined middleware
+  // Create combined middleware (for backwards compatibility)
   const combinedMiddleware = Router();
 
   // HTML injection needs to run before other middleware
@@ -72,10 +98,15 @@ export async function createPrototypeAnnotator(
   // Mount the main router
   combinedMiddleware.use(router);
 
-  // Return middleware object with both .middleware() method and .router property
+  // Create a passthrough middleware if no injector
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const injectorMiddleware = injector || ((_req: any, _res: any, next: () => void) => next());
+
+  // Return middleware object with separate router and injector
   return {
     middleware: () => combinedMiddleware,
-    router: combinedMiddleware,
+    router,  // Just API routes and static files (no injection)
+    injector: injectorMiddleware,
     config,
   };
 }
