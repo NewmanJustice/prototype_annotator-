@@ -5,6 +5,7 @@ import { PromptExportRepository } from '../db/repositories/prompts.js';
 import { EventRepository } from '../db/repositories/events.js';
 import type {
   Annotation,
+  ElementAnchor,
   GeneratePromptInput,
   GeneratedPrompt,
   PromptExport,
@@ -191,6 +192,29 @@ export class PromptService {
       .slice(0, 30) || 'annotations';
   }
 
+  private formatElementLocation(annotation: Annotation): string {
+    if (annotation.anchor_type === 'element') {
+      const anchor = annotation.anchor_payload as ElementAnchor;
+      const parts: string[] = [];
+
+      if (anchor.selector) {
+        parts.push(`Selector: \`${anchor.selector}\``);
+      }
+      if (anchor.textContent) {
+        // Truncate long text content
+        const text = anchor.textContent.length > 100
+          ? anchor.textContent.slice(0, 100) + '...'
+          : anchor.textContent;
+        parts.push(`Text: "${text}"`);
+      }
+
+      return parts.join(' | ');
+    } else {
+      // Rectangle selection - just note it's a region
+      return 'Region selection (coordinates captured)';
+    }
+  }
+
   private generateMarkdown(annotations: Annotation[]): string {
     const now = new Date().toISOString();
 
@@ -214,9 +238,10 @@ export class PromptService {
     for (const [url, urlAnnotations] of byUrl) {
       observationsSection += `### ${new URL(url).pathname}\n\n`;
       for (const a of urlAnnotations) {
-        observationsSection += `- **${a.title}** (${a.anchor_type})\n`;
+        observationsSection += `- **${a.title}**\n`;
+        observationsSection += `  - Element: ${this.formatElementLocation(a)}\n`;
         if (a.body) {
-          observationsSection += `  ${a.body}\n`;
+          observationsSection += `  - Note: ${a.body}\n`;
         }
         observationsSection += '\n';
       }
@@ -231,7 +256,7 @@ export class PromptService {
       if (annotation.body) {
         changesSection += `   - ${annotation.body}\n`;
       }
-      changesSection += `   - Location: ${annotation.anchor_type === 'element' ? 'Element selection' : 'Region selection'}\n`;
+      changesSection += `   - Element: ${this.formatElementLocation(annotation)}\n`;
       changesSection += `   - Page: ${annotation.url_canonical}\n\n`;
       changeNum++;
     }

@@ -30,24 +30,28 @@ import { createPrototypeAnnotator } from 'prototype-annotator';
 
 const app = express();
 
-// Initialize the annotator
-const annotator = createPrototypeAnnotator({
-  basePath: '/__prototype-annotator',
-  dbPath: './data/annotations.sqlite',
-  exportDir: './exports',
-});
+async function main() {
+  // Initialize the annotator (async)
+  const annotator = await createPrototypeAnnotator({
+    basePath: '/__prototype-annotator',
+    dbPath: './data/annotations.sqlite',
+    exportDir: './exports',
+  });
 
-// Add the middleware
-app.use(annotator.middleware());
+  // Add the middleware
+  app.use(annotator.middleware());
 
-// Your routes...
-app.get('/', (req, res) => {
-  res.send('<html><body><h1>Hello World</h1></body></html>');
-});
+  // Your routes...
+  app.get('/', (req, res) => {
+    res.send('<html><body><h1>Hello World</h1></body></html>');
+  });
 
-app.listen(3000, () => {
-  console.log('Server running at http://localhost:3000');
-});
+  app.listen(3000, () => {
+    console.log('Server running at http://localhost:3000');
+  });
+}
+
+main();
 ```
 
 ## Configuration Options

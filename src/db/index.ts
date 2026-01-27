@@ -1,29 +1,175 @@
-import Database from 'better-sqlite3';
+import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 import fs from 'fs';
 import path from 'path';
 
-let db: Database.Database | null = null;
+// Wrapper to provide better-sqlite3-like API
+class DatabaseWrapper {
+  private db: SqlJsDatabase;
+  private dbPath: string;
+  private saveTimeout: NodeJS.Timeout | null = null;
 
-export function getDatabase(): Database.Database {
+  constructor(db: SqlJsDatabase, dbPath: string) {
+    this.db = db;
+    this.dbPath = dbPath;
+  }
+
+  prepare(sql: string): StatementWrapper {
+    return new StatementWrapper(this.db, sql, () => this.scheduleSave());
+  }
+
+  exec(sql: string): void {
+    this.db.run(sql);
+    this.scheduleSave();
+  }
+
+  pragma(_pragma: string): void {
+    // sql.js doesn't support WAL mode or most pragmas - silently ignore
+  }
+
+  close(): void {
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+      this.saveTimeout = null;
+    }
+    this.saveNow();
+    this.db.close();
+  }
+
+  private scheduleSave(): void {
+    // Debounce saves to avoid excessive disk writes
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+    }
+    this.saveTimeout = setTimeout(() => {
+      this.saveNow();
+      this.saveTimeout = null;
+    }, 100);
+  }
+
+  private saveNow(): void {
+    try {
+      const data = this.db.export();
+      const buffer = Buffer.from(data);
+      fs.writeFileSync(this.dbPath, buffer);
+    } catch (error) {
+      console.error('[prototype-annotator] Failed to save database:', error);
+    }
+  }
+}
+
+class StatementWrapper {
+  private db: SqlJsDatabase;
+  private sql: string;
+  private onWrite: () => void;
+
+  constructor(db: SqlJsDatabase, sql: string, onWrite: () => void) {
+    this.db = db;
+    this.sql = sql;
+    this.onWrite = onWrite;
+  }
+
+  run(...params: unknown[]): void {
+    this.db.run(this.sql, params as (string | number | null | Uint8Array)[]);
+    this.onWrite();
+  }
+
+  get(...params: unknown[]): Record<string, unknown> | undefined {
+    const stmt = this.db.prepare(this.sql);
+    stmt.bind(params as (string | number | null | Uint8Array)[]);
+
+    if (stmt.step()) {
+      const row = stmt.getAsObject();
+      stmt.free();
+      return row as Record<string, unknown>;
+    }
+
+    stmt.free();
+    return undefined;
+  }
+
+  all(...params: unknown[]): Record<string, unknown>[] {
+    const results: Record<string, unknown>[] = [];
+    const stmt = this.db.prepare(this.sql);
+    stmt.bind(params as (string | number | null | Uint8Array)[]);
+
+    while (stmt.step()) {
+      results.push(stmt.getAsObject() as Record<string, unknown>);
+    }
+
+    stmt.free();
+    return results;
+  }
+}
+
+let db: DatabaseWrapper | null = null;
+let SQL: Awaited<ReturnType<typeof initSqlJs>> | null = null;
+
+// Pre-initialize sql.js when module loads
+const sqlJsPromise: Promise<Awaited<ReturnType<typeof initSqlJs>>> = initSqlJs();
+sqlJsPromise.then((instance) => {
+  SQL = instance;
+});
+
+export function getDatabase(): DatabaseWrapper {
   if (!db) {
     throw new Error('Database not initialized. Call initDatabase() first.');
   }
   return db;
 }
 
-export function initDatabase(dbPath: string): Database.Database {
+export async function initDatabaseAsync(dbPath: string): Promise<DatabaseWrapper> {
+  // Wait for sql.js to be ready
+  if (!SQL) {
+    SQL = await sqlJsPromise;
+  }
+
   // Ensure directory exists
   const dir = path.dirname(dbPath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  // Create database connection
-  db = new Database(dbPath);
+  // Load existing database or create new one
+  let sqlJsDb: SqlJsDatabase;
+  if (fs.existsSync(dbPath)) {
+    const fileBuffer = fs.readFileSync(dbPath);
+    sqlJsDb = new SQL.Database(fileBuffer);
+  } else {
+    sqlJsDb = new SQL.Database();
+  }
 
-  // Enable WAL mode for better concurrent performance
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
+  db = new DatabaseWrapper(sqlJsDb, dbPath);
+
+  // Run migrations
+  runMigrations(db);
+
+  return db;
+}
+
+// Synchronous init - requires SQL to be pre-loaded
+export function initDatabase(dbPath: string): DatabaseWrapper {
+  if (!SQL) {
+    throw new Error(
+      'sql.js not yet initialized. Use initDatabaseAsync() or wait for module to load.'
+    );
+  }
+
+  // Ensure directory exists
+  const dir = path.dirname(dbPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  // Load existing database or create new one
+  let sqlJsDb: SqlJsDatabase;
+  if (fs.existsSync(dbPath)) {
+    const fileBuffer = fs.readFileSync(dbPath);
+    sqlJsDb = new SQL.Database(fileBuffer);
+  } else {
+    sqlJsDb = new SQL.Database();
+  }
+
+  db = new DatabaseWrapper(sqlJsDb, dbPath);
 
   // Run migrations
   runMigrations(db);
@@ -38,7 +184,12 @@ export function closeDatabase(): void {
   }
 }
 
-function runMigrations(database: Database.Database): void {
+// Export promise for consumers who need to wait
+export function waitForSqlJs(): Promise<void> {
+  return sqlJsPromise.then(() => {});
+}
+
+function runMigrations(database: DatabaseWrapper): void {
   // Create migrations tracking table
   database.exec(`
     CREATE TABLE IF NOT EXISTS _migrations (
@@ -109,14 +260,12 @@ function runMigrations(database: Database.Database): void {
   }
 
   // Apply pending migrations
-  const insertMigration = database.prepare(
-    'INSERT INTO _migrations (name, applied_at) VALUES (?, ?)'
-  );
-
   for (const migration of migrations) {
     if (!appliedMigrations.has(migration.name)) {
       database.exec(migration.sql);
-      insertMigration.run(migration.name, new Date().toISOString());
+      database.prepare(
+        'INSERT INTO _migrations (name, applied_at) VALUES (?, ?)'
+      ).run(migration.name, new Date().toISOString());
       console.log(`Applied migration: ${migration.name}`);
     }
   }

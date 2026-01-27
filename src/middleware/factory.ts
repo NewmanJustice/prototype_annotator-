@@ -1,7 +1,7 @@
 import { Router, json, static as expressStatic } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initDatabase } from '../db/index.js';
+import { initDatabaseAsync } from '../db/index.js';
 import { createApiRouter } from '../api/router.js';
 import { createInjector } from './injector.js';
 import { errorHandler, notFoundHandler } from './error-handler.js';
@@ -11,14 +11,14 @@ import type { PrototypeAnnotatorConfig, PrototypeAnnotatorMiddleware } from '../
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export function createPrototypeAnnotator(
+export async function createPrototypeAnnotator(
   userConfig?: PrototypeAnnotatorConfig
-): PrototypeAnnotatorMiddleware {
+): Promise<PrototypeAnnotatorMiddleware> {
   // Resolve configuration
   const config = resolveConfig(userConfig);
 
-  // Initialize database
-  initDatabase(config.dbPath);
+  // Initialize database (async for sql.js)
+  await initDatabaseAsync(config.dbPath);
 
   // Create main router
   const router = Router();
