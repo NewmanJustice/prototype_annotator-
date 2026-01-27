@@ -1,6 +1,6 @@
 # Prototype Annotator
 
-An Express middleware that enables in-browser annotation capabilities for collecting feedback on prototypes and designs. Features SQLite persistence, a Preact-based overlay UI, a management dashboard, and AI-powered prompt generation via Ollama.
+An Express middleware that enables in-browser annotation capabilities for collecting feedback on prototypes and designs. Features SQLite persistence, a Preact-based overlay UI, a management dashboard, and template-based prompt generation.
 
 ## Features
 
@@ -8,7 +8,7 @@ An Express middleware that enables in-browser annotation capabilities for collec
 - **Shadow DOM Isolation**: Overlay UI is completely isolated from your app's styles
 - **Persistent Storage**: All annotations stored in SQLite with full event history
 - **Management Dashboard**: Browse, filter, and manage annotations across all pages
-- **AI-Powered Prompts**: Generate structured prompts from annotations, optionally enhanced with Ollama
+- **Prompt Generation**: Generate structured prompts from annotations using templates
 - **Audit Trail**: Complete event history for all annotation changes
 
 ## Installation
@@ -62,8 +62,6 @@ app.listen(3000, () => {
 | `defaultActor` | string | `'anonymous'` | Default actor name |
 | `enableOverlay` | boolean | `true` | Enable the annotation overlay on pages |
 | `enableDashboard` | boolean | `true` | Enable the management dashboard |
-| `ollamaUrl` | string | `'http://localhost:11434'` | Ollama API URL |
-| `ollamaModel` | string | `'tinyllama'` | Ollama model for AI enhancement |
 
 ## Using the Overlay
 
@@ -92,46 +90,7 @@ The dashboard provides:
 - **Pages**: View all pages with annotations
 - **Annotations**: Browse, filter, and manage all annotations
 - **Events**: Audit log of all annotation changes
-- **Prompts**: Generate and export AI-enhanced prompts
-
-## AI-Powered Prompt Generation
-
-Prototype Annotator can generate structured prompts from your annotations, optionally enhanced with Ollama.
-
-### Setting Up Ollama (Optional)
-
-For AI-enhanced prompts, install Ollama:
-
-```bash
-# macOS
-brew install ollama
-
-# Linux
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Windows
-# Download from https://ollama.com/download
-```
-
-Then start the service:
-
-```bash
-ollama serve
-```
-
-The `tinyllama` model will be automatically downloaded on first use.
-
-### Interactive Setup
-
-Run the setup script for guided Ollama installation:
-
-```bash
-npx prototype-annotator-setup
-```
-
-### Without Ollama
-
-If Ollama is not available, prompts are generated using templates only. The dashboard will show the Ollama status and provide setup instructions.
+- **Prompts**: Generate and export prompts from annotations
 
 ## API Endpoints
 
@@ -162,13 +121,6 @@ All endpoints are prefixed with `{basePath}/api`.
 | GET | `/prompts/exports` | List exported prompts |
 | POST | `/prompts/generate` | Generate prompt preview |
 | POST | `/prompts/confirm` | Export prompt to files |
-
-### Ollama Status
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/ollama/status` | Check Ollama service status |
-| GET | `/ollama/setup` | Get setup instructions |
 
 ## Example
 

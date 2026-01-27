@@ -3,7 +3,6 @@ import path from 'path';
 import { AnnotationRepository } from '../db/repositories/annotations.js';
 import { PromptExportRepository } from '../db/repositories/prompts.js';
 import { EventRepository } from '../db/repositories/events.js';
-import { OllamaManager } from '../ollama/manager.js';
 import type {
   Annotation,
   GeneratePromptInput,
@@ -57,14 +56,12 @@ export class PromptService {
   private annotationRepo: AnnotationRepository;
   private promptRepo: PromptExportRepository;
   private eventRepo: EventRepository;
-  private ollamaManager: OllamaManager;
   private config: ResolvedConfig;
 
   constructor(config: ResolvedConfig) {
     this.annotationRepo = new AnnotationRepository();
     this.promptRepo = new PromptExportRepository();
     this.eventRepo = new EventRepository();
-    this.ollamaManager = new OllamaManager(config.ollamaUrl, config.ollamaModel);
     this.config = config;
   }
 
@@ -84,22 +81,12 @@ export class PromptService {
     }
 
     // Generate markdown from template
-    let markdown = this.generateMarkdown(annotations);
-
-    // Optionally enhance with AI
-    let enhanced = false;
-    if (input.enhance_with_ai !== false) {
-      const enhancedMarkdown = await this.enhanceWithAI(markdown, annotations);
-      if (enhancedMarkdown) {
-        markdown = enhancedMarkdown;
-        enhanced = true;
-      }
-    }
+    const markdown = this.generateMarkdown(annotations);
 
     return {
       markdown,
       annotations,
-      enhanced,
+      enhanced: false,
     };
   }
 
@@ -109,7 +96,7 @@ export class PromptService {
     let annotations: Annotation[] = [];
 
     if (!markdown) {
-      const generated = await this.generate({ ...input, enhance_with_ai: false });
+      const generated = await this.generate(input);
       markdown = generated.markdown;
       annotations = generated.annotations;
     } else {
@@ -277,32 +264,5 @@ export class PromptService {
     output = output.replace('{{annotation_count}}', String(annotations.length));
 
     return output;
-  }
-
-  private async enhanceWithAI(markdown: string, annotations: Annotation[]): Promise<string | null> {
-    if (annotations.length === 0) return null;
-
-    const isReady = await this.ollamaManager.ensureReady();
-    if (!isReady) return null;
-
-    const prompt = `You are a helpful assistant that improves implementation prompts for developers.
-
-Given the following implementation prompt document, please enhance it by:
-1. Making the "Required Changes" section more actionable and code-oriented
-2. Adding specific implementation suggestions where appropriate
-3. Improving the "Acceptance Criteria" to be more testable
-4. Adding relevant technical considerations
-
-Keep the overall structure intact. Output the enhanced document:
-
-${markdown}`;
-
-    try {
-      const enhanced = await this.ollamaManager.generate(prompt);
-      return enhanced;
-    } catch (error) {
-      console.warn('AI enhancement failed:', error);
-      return null;
-    }
   }
 }

@@ -111,8 +111,6 @@ export interface PrototypeAnnotatorConfig {
   basePath?: string;
   dbPath?: string;
   exportDir?: string;
-  ollamaUrl?: string;
-  ollamaModel?: string;
   defaultActor?: string;
   enableOverlay?: boolean;
   enableDashboard?: boolean;
@@ -124,8 +122,6 @@ export interface ResolvedConfig {
   basePath: string;
   dbPath: string;
   exportDir: string;
-  ollamaUrl: string;
-  ollamaModel: string;
   defaultActor: string;
   enableOverlay: boolean;
   enableDashboard: boolean;

@@ -1,7 +1,7 @@
 {
   "name": "prototype-annotator",
   "version": "0.1.0",
-  "description": "In-browser annotation capabilities with SQLite persistence and AI-powered prompt generation",
+  "description": "In-browser annotation capabilities with SQLite persistence and template-based prompt generation",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,13 +11,9 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "bin": {
-    "prototype-annotator-setup": "./bin/setup-ollama.js"
-  },
   "files": [
     "dist",
-    "client/dist",
-    "bin"
+    "client/dist"
   ],
   "scripts": {
     "build": "npm run build:server && npm run build:client",
@@ -29,8 +25,7 @@
     "dev:overlay": "vite build --config vite.config.ts --mode overlay --watch",
     "dev:dashboard": "vite --config vite.config.ts --mode dashboard",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json",
-    "example": "npx tsx example/server.ts",
-    "setup": "node bin/setup-ollama.js"
+    "example": "npx tsx example/server.ts"
   },
   "dependencies": {
     "better-sqlite3": "^11.0.0",
@@ -61,8 +56,7 @@
     "prototype",
     "express",
     "middleware",
-    "design-feedback",
-    "ollama"
+    "design-feedback"
   ],
   "license": "MIT"
 }
