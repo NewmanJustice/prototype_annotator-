@@ -38,6 +38,8 @@ npm-debug.log*
 # Environment
 .env
 .env.local
+.devcontainer/startcontainer.sh
+CLAUDE.md
 .env.*.local
 
 # TypeScript cache
@@ -47,3 +49,4 @@ npm-debug.log*
 claudeinit.sh
 .devcontainer/claudeinit.sh
 **/claudeinit.sh
+

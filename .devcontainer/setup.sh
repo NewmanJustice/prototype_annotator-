@@ -17,23 +17,17 @@ nvm use --lts
 # Verify installations
 echo "Node version: $(node --version)"
 echo "NPM version: $(npm --version)"
+echo "✅ NVM and Node.js LTS installed"
 
-# Install Claude CLI
-echo "Installing Claude CLI..."
-npm install -g @anthropic-ai/claude-code
+# Install Azure CLI
+echo "Installing Azure CLI..."
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+echo "✅ Azure CLI installed"  
 
-# Verify Claude CLI installation
-echo "Claude CLI version: $(claude --version)"
-
-# Install GitHub Copilot CLI
-echo "Installing GitHub Copilot CLI..."
-npm install -g @githubnext/github-copilot-cli
-
-# Verify GitHub Copilot CLI installation
-echo "GitHub Copilot CLI installed"
-
-# Optional: ensure Playwright browsers are installed globally
-#npx playwright install --with-deps
+# Install Clude CLI
+echo "Installing Clude CLI..."
+curl -fsSL https://claude.ai/install.sh | bash
+echo "✅ Clude CLI installed"
 
 # Install kubelogin for AKS authentication
 echo "Installing kubelogin..."
@@ -58,3 +52,9 @@ echo "✅ Bash history configured"
 echo "✅ Dev container setup complete."
 
 exec $SHELL
+
+# Launch Claude
+echo "Launching Claude CLI..."
+chmod +x ./.devcontainer/claudeinit.sh
+./.devcontainer/claudeinit.sh
+
