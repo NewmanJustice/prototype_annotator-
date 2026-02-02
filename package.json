@@ -1,6 +1,6 @@
 {
   "name": "prototype-annotator",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "In-browser annotation capabilities with SQLite persistence and template-based prompt generation",
   "author": "Newman Justice",
   "repository": {
@@ -34,7 +34,8 @@
     "dev:overlay": "vite build --config vite.config.ts --mode overlay --watch",
     "dev:dashboard": "vite --config vite.config.ts --mode dashboard",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json",
-    "example": "npx tsx example/server.ts"
+    "example": "npx tsx example/server.ts",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "express": "^4.18.0",
