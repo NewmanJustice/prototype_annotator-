@@ -50,3 +50,5 @@ claudeinit.sh
 .devcontainer/claudeinit.sh
 **/claudeinit.sh
 
+PLAN_spa_friendly.md
+
